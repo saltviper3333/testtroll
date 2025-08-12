@@ -9,7 +9,7 @@ from telethon import errors
 
 @loader.tds
 class AutoSpamOnlineMod(loader.Module):
-    """Автоспам с фразами из текстового файла (.txt) на GitHub"""
+    """Автоспам с фразами из текстового файла (.txt) на GitHub с чередующейся задержкой"""
 
     strings = {
         "name": "AutoSpamOnline",
@@ -23,7 +23,7 @@ class AutoSpamOnlineMod(loader.Module):
 
     def __init__(self):
         self.spam_active = False
-        # 📝 Сюда вставь свою ссылку на RAW вашего messages.txt
+        # Сюда вставь свой RAW-URL к messages.txt на GitHub
         self.url = "https://raw.githubusercontent.com/saltviper3333/gdfsfdsfdsf/main/messages.txt"
 
     async def get_messages(self):
@@ -62,13 +62,23 @@ class AutoSpamOnlineMod(loader.Module):
         self.spam_active = True
         await utils.answer(message, self.strings["spam_started"])
 
+        delay_cycle = [0.10, 0.5]  # задержки для чередования
+        delay_index = 0
+
         try:
             while self.spam_active:
                 text = random.choice(phrases)
                 try:
+                    # Отправляем сообщение
                     await message.client.send_message(message.chat_id, text)
-                    await asyncio.sleep(0.5)  # задержка между сообщениями
+
+                    # Меняем задержку "качалкой"
+                    await asyncio.sleep(delay_cycle[delay_index])
+                    delay_index = (delay_index + 1) % len(delay_cycle)
+
                 except errors.FloodWaitError as e:
+                    # Telegram попросил подождать
+                    await utils.answer(message, f"🚫 FloodWait {e.seconds} сек")
                     await asyncio.sleep(e.seconds)
                 except Exception:
                     break
