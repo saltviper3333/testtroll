@@ -9,7 +9,7 @@ from telethon import errors
 
 @loader.tds
 class AutoSpamOnlineMod(loader.Module):
-    """Автоспам с фразами из текстового файла (.txt) на GitHub с чередующейся задержкой"""
+    """Автоспам из текстового файла (.txt) на GitHub с чередующейся задержкой"""
 
     strings = {
         "name": "AutoSpamOnline",
@@ -17,17 +17,17 @@ class AutoSpamOnlineMod(loader.Module):
         "spam_stopped": "⛔ <b>ебля остановлена</b>",
         "error_download": "❌ <b>Ошибка загрузки фраз:</b> <code>{}</code>",
         "error_no_messages": "❌ <b>В удалённом файле нет сообщений!</b>",
-        "already_running": "⚠️ <b>Спам уже запущен</b>",
-        "not_running": "❌ <b>Спам не активен</b>"
+        "already_running": "⚠️ <b>ебля уже запущена</b>",
+        "not_running": "❌ <b>ебля не активна</b>"
     }
 
     def __init__(self):
         self.spam_active = False
-        # Сюда вставь свой RAW-URL к messages.txt на GitHub
+        # 💡 Сюда вставь свой RAW-URL к messages.txt
         self.url = "https://raw.githubusercontent.com/saltviper3333/gdfsfdsfdsf/main/messages.txt"
 
     async def get_messages(self):
-        """Скачиваем TXT-файл и возвращаем список строк"""
+        """Скачать TXT-файл и вернуть список строк"""
         try:
             async with aiohttp.ClientSession() as session:
                 async with session.get(self.url) as response:
@@ -41,8 +41,8 @@ class AutoSpamOnlineMod(loader.Module):
             return str(e)
 
     @loader.command()
-    async def startspam(self, message):
-        """Запустить онлайн-спам"""
+    async def sex(self, message):
+        """Начать онлайн-спам"""
         if self.spam_active:
             await utils.answer(message, self.strings["already_running"])
             return
@@ -62,22 +62,19 @@ class AutoSpamOnlineMod(loader.Module):
         self.spam_active = True
         await utils.answer(message, self.strings["spam_started"])
 
-        delay_cycle = [0.10, 0.5]  # задержки для чередования
+        delay_cycle = [0.10, 0.5]  # "качалка" задержек
         delay_index = 0
 
         try:
             while self.spam_active:
                 text = random.choice(phrases)
                 try:
-                    # Отправляем сообщение
+                    # Отправка сообщения
                     await message.client.send_message(message.chat_id, text)
-
-                    # Меняем задержку "качалкой"
+                    # Чередуем задержки
                     await asyncio.sleep(delay_cycle[delay_index])
                     delay_index = (delay_index + 1) % len(delay_cycle)
-
                 except errors.FloodWaitError as e:
-                    # Telegram попросил подождать
                     await utils.answer(message, f"🚫 FloodWait {e.seconds} сек")
                     await asyncio.sleep(e.seconds)
                 except Exception:
@@ -86,7 +83,7 @@ class AutoSpamOnlineMod(loader.Module):
             self.spam_active = False
 
     @loader.command()
-    async def stopspam(self, message):
+    async def s(self, message):
         """Остановить спам"""
         if self.spam_active:
             self.spam_active = False
