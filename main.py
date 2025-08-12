@@ -11,12 +11,12 @@ class AutoSpamOnlineMod(loader.Module):
 
     strings = {
         "name": "AutoSpamOnline",
-        "spam_started": "🚀 <b>Онлайн-спам запущен!</b>",
-        "spam_stopped": "⛔ <b>Спам остановлен</b>",
+        "spam_started": "🚀 <b>ебля запущена!</b>",
+        "spam_stopped": "⛔ <b>ебля остановлена</b>",
         "error_download": "❌ <b>Ошибка загрузки фраз:</b> <code>{}</code>",
         "error_no_messages": "❌ <b>В удалённом файле нет сообщений!</b>",
-        "already_running": "⚠️ <b>Спам уже запущен</b>",
-        "not_running": "❌ <b>Спам не активен</b>"
+        "already_running": "⚠️ <b>ебля уже запущена</b>",
+        "not_running": "❌ <b>ебля не активна</b>"
     }
 
     def __init__(self):
@@ -39,8 +39,8 @@ class AutoSpamOnlineMod(loader.Module):
             return str(e)
 
     @loader.command()
-    async def startspam(self, message):
-        """Запустить онлайн-спам"""
+    async def sex(self, message):
+        """Запустить еблю (онлайн-спам)"""
         if self.spam_active:
             await utils.answer(message, self.strings["already_running"])
             return
@@ -74,8 +74,8 @@ class AutoSpamOnlineMod(loader.Module):
             self.spam_active = False
 
     @loader.command()
-    async def stopspam(self, message):
-        """Остановить спам"""
+    async def s(self, message):
+        """Остановить еблю"""
         if self.spam_active:
             self.spam_active = False
             await utils.answer(message, self.strings["spam_stopped"])
