@@ -21,7 +21,7 @@ class AutoSpamOnlineMod(loader.Module):
 
     def __init__(self):
         self.spam_active = False
-        # 📝 Сюда укажи ссылку на RAW TXT файл (каждая строка = отдельное сообщение)
+        # 📝 Сюда укажи ссылку на RAW TXT файл (каждая строка — отдельное сообщение)
         self.url = "https://raw.githubusercontent.com/saltviper3333/gdfsfdsfdsf/main/messages.txt"
 
     async def get_messages(self):
@@ -65,7 +65,7 @@ class AutoSpamOnlineMod(loader.Module):
                 text = random.choice(phrases)
                 try:
                     await message.client.send_message(message.chat_id, text)
-                    await asyncio.sleep(0.05)  # 🔹 фиксированная задержка 0.05 сек
+                    await asyncio.sleep(random.uniform(0.08, 0.5))  # 🔹 задержка 0.08–0.5 сек
                 except errors.FloodWaitError as e:
                     await asyncio.sleep(e.seconds)
                 except Exception:
