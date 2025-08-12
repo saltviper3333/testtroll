@@ -3,14 +3,13 @@
 
 import asyncio
 import random
-import json
 import aiohttp
 from .. import loader, utils
 from telethon import errors
 
 @loader.tds
 class AutoSpamOnlineMod(loader.Module):
-    """Автоспам с фразами из облачного файла (GitHub, raw JSON)"""
+    """Автоспам с фразами из текстового файла (.txt) на GitHub"""
 
     strings = {
         "name": "AutoSpamOnline",
@@ -24,17 +23,18 @@ class AutoSpamOnlineMod(loader.Module):
 
     def __init__(self):
         self.spam_active = False
-        # 📝 Сюда вставь свою ссылку на RAW JSON с фразами
-        self.url = "https://github.com/saltviper3333/gdfsfdsfdsf/raw/refs/heads/main/messages.txt"
+        # 📝 Сюда вставь свою ссылку на RAW вашего messages.txt
+        self.url = "https://raw.githubusercontent.com/saltviper3333/gdfsfdsfdsf/main/messages.txt"
 
     async def get_messages(self):
-        """Скачиваем JSON-файл с GitHub"""
+        """Скачиваем TXT-файл и возвращаем список строк"""
         try:
             async with aiohttp.ClientSession() as session:
                 async with session.get(self.url) as response:
                     if response.status == 200:
-                        data = json.loads(await response.text())
-                        return data.get("Messages", [])
+                        text_data = await response.text()
+                        lines = [line.strip() for line in text_data.splitlines() if line.strip()]
+                        return lines
                     else:
                         return None
         except Exception as e:
@@ -67,10 +67,10 @@ class AutoSpamOnlineMod(loader.Module):
                 text = random.choice(phrases)
                 try:
                     await message.client.send_message(message.chat_id, text)
-                    await asyncio.sleep(0.5)
+                    await asyncio.sleep(0.5)  # задержка между сообщениями
                 except errors.FloodWaitError as e:
                     await asyncio.sleep(e.seconds)
-                except Exception as e:
+                except Exception:
                     break
         finally:
             self.spam_active = False
