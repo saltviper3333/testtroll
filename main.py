@@ -1,6 +1,7 @@
 import asyncio
 import random
 import aiohttp
+import time
 from .. import loader, utils
 from telethon import errors
 
@@ -20,12 +21,12 @@ class AutoSpamOnlineMod(loader.Module):
         "q_no_reply": "⚠️ <b>Используй эту команду ответом на сообщение!</b>",
         "q_added": "✅ <b>Байт включён на {}</b>",
         "qq_done": "🗑 <b>Все байты остановлены</b>",
-        "qwe_header": "📜 <b>Активные байты:</b>\n"
+        "qwe_header": "📜 <b>Активные байтинги:</b>\n"
     }
 
     def __init__(self):
         self.spam_active = False
-        # {chat_id: set(user_ids)}
+        # {chat_id: {user_id: start_time}}
         self.q_targets = {}
         self.url = "https://raw.githubusercontent.com/saltviper3333/gdfsfdsfdsf/main/messages.txt"
 
@@ -42,20 +43,16 @@ class AutoSpamOnlineMod(loader.Module):
         except Exception as e:
             return str(e)
 
-    # 🔹 Главный спам-цикл
+    # === Запуск спама
     @loader.command()
     async def sex(self, message):
-        """Запустить еблю (онлайн-спам)"""
         if self.spam_active:
             return await utils.answer(message, self.strings["already_running"])
-
         phrases = await self.get_messages()
         if not phrases or isinstance(phrases, str):
             return await utils.answer(message, self.strings["error_no_messages"])
-
         self.spam_active = True
         await utils.answer(message, self.strings["spam_started"])
-
         try:
             while self.spam_active:
                 await message.client.send_message(message.chat_id, random.choice(phrases))
@@ -67,69 +64,69 @@ class AutoSpamOnlineMod(loader.Module):
 
     @loader.command()
     async def s(self, message):
-        """Остановить еблю"""
         if self.spam_active:
             self.spam_active = False
             await utils.answer(message, self.strings["spam_stopped"])
         else:
             await utils.answer(message, self.strings["not_running"])
 
-    # 🔹 Ставим авто-байтинг
+    # === Ставим таргет
     @loader.command()
     async def q(self, message):
-        """Ответом на сообщение — включить байтинг на пользователя"""
         if not message.is_reply:
             return await utils.answer(message, self.strings["q_no_reply"])
-
         reply_msg = await message.get_reply_message()
         target_id = reply_msg.sender_id
         chat_id = message.chat_id
-
-        self.q_targets.setdefault(chat_id, set()).add(target_id)
-
-        # Мгновенно удаляем команду
+        self.q_targets.setdefault(chat_id, {})[target_id] = time.time()
         await message.delete()
-
         user_name = utils.get_display_name(reply_msg.sender)
-        # Сообщение о добавлении можно опустить, но вставлю для логов в консоль
         await utils.answer(reply_msg, self.strings["q_added"].format(user_name))
 
-    # 🔹 Очищаем все цели
+    # === Сбрасываем
     @loader.command()
     async def qq(self, message):
-        """Сбросить все байты"""
         self.q_targets.clear()
         await utils.answer(message, self.strings["qq_done"])
 
-    # 🔹 Выводим список
+    # === Красивое меню
     @loader.command()
     async def qwe(self, message):
-        """Вывести список активных байтингов"""
         if not self.q_targets:
             return await utils.answer(message, "❌ <b>Нет активных байтов</b>")
-
         out = self.strings["qwe_header"]
+        now = time.time()
         for chat_id, users in self.q_targets.items():
             try:
-                chat_title = (await message.client.get_entity(chat_id)).title
+                entity = await message.client.get_entity(chat_id)
+                if getattr(entity, "title", None):
+                    chat_title = f"💬 {entity.title} (группа)"
+                else:
+                    chat_title = "📩 ЛС"
             except:
                 chat_title = str(chat_id)
             out += f"\n<b>{chat_title}</b>:\n"
-            for uid in users:
+            for uid, start_time in users.items():
                 try:
-                    name = utils.get_display_name(await message.client.get_entity(uid))
+                    user = await message.client.get_entity(uid)
+                    name = utils.get_display_name(user)
+                    uname = f"@{user.username}" if getattr(user, "username", None) else "—"
                 except:
-                    name = str(uid)
-                out += f"  ╰ 💬 {name}\n"
+                    name, uname = str(uid), "—"
+                elapsed = int(now - start_time)
+                h = elapsed // 3600
+                m = (elapsed % 3600) // 60
+                s = elapsed % 60
+                out += f"  ├ 🆔 <code>{uid}</code> | {uname} | {name}\n"
+                out += f"  └ ⏳ {h:02}:{m:02}:{s:02}\n"
         await utils.answer(message, out)
 
-    # 🔹 Слежка за сообщениями
+    # === Автоответчик
     async def watcher(self, message):
         if not getattr(message, "sender_id", None):
             return
         chat_id = message.chat_id
         user_id = message.sender_id
-
         if chat_id in self.q_targets and user_id in self.q_targets[chat_id]:
             phrases = await self.get_messages()
             if not phrases or isinstance(phrases, str):
