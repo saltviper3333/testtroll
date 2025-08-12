@@ -7,7 +7,7 @@ from telethon import errors
 
 @loader.tds
 class AutoSpamOnlineMod(loader.Module):
-    """Автоспам с фразами из облачного TXT файла (GitHub, raw)"""
+    """Автоспам + автоответ одним сообщением по шаблону"""
 
     strings = {
         "name": "AutoSpamOnline",
@@ -16,12 +16,15 @@ class AutoSpamOnlineMod(loader.Module):
         "error_download": "❌ <b>Ошибка загрузки фраз:</b> <code>{}</code>",
         "error_no_messages": "❌ <b>В удалённом файле нет сообщений!</b>",
         "already_running": "⚠️ <b>ебля уже запущена</b>",
-        "not_running": "❌ <b>ебля не активна</b>"
+        "not_running": "❌ <b>ебля не активна</b>",
+        "q_no_reply": "⚠️ <b>Используй эту команду в ответ на сообщение!</b>",
+        "q_done": "✅ <b>Ответ отправлен</b>",
+        "qq_done": "🗑 <b>Все задачи .q остановлены</b>",
     }
 
     def __init__(self):
         self.spam_active = False
-        # 📝 Сюда укажи ссылку на RAW TXT файл (каждая строка — отдельное сообщение)
+        self.q_tasks = []  # сюда будем складывать задачи .q
         self.url = "https://raw.githubusercontent.com/saltviper3333/gdfsfdsfdsf/main/messages.txt"
 
     async def get_messages(self):
@@ -31,13 +34,13 @@ class AutoSpamOnlineMod(loader.Module):
                 async with session.get(self.url) as response:
                     if response.status == 200:
                         text_data = await response.text()
-                        # Разделяем по строкам и убираем пустые
                         return [line.strip() for line in text_data.splitlines() if line.strip()]
                     else:
                         return None
         except Exception as e:
             return str(e)
 
+    # === Основной спам (.sex / .s) ===
     @loader.command()
     async def sex(self, message):
         """Запустить еблю (онлайн-спам)"""
@@ -46,7 +49,6 @@ class AutoSpamOnlineMod(loader.Module):
             return
 
         phrases = await self.get_messages()
-
         if phrases is None:
             await utils.answer(message, self.strings["error_download"].format("HTTP error"))
             return
@@ -65,7 +67,7 @@ class AutoSpamOnlineMod(loader.Module):
                 text = random.choice(phrases)
                 try:
                     await message.client.send_message(message.chat_id, text)
-                    await asyncio.sleep(random.uniform(0.08, 0.5))  # 🔹 задержка 0.08–0.5 сек
+                    await asyncio.sleep(random.uniform(0.08, 0.5))
                 except errors.FloodWaitError as e:
                     await asyncio.sleep(e.seconds)
                 except Exception:
@@ -81,3 +83,44 @@ class AutoSpamOnlineMod(loader.Module):
             await utils.answer(message, self.strings["spam_stopped"])
         else:
             await utils.answer(message, self.strings["not_running"])
+
+    # === Новый функционал .q / .qq ===
+    @loader.command()
+    async def q(self, message):
+        """Отправить 1 случайное сообщение из шаблона как ответ"""
+        if not message.is_reply:
+            await utils.answer(message, self.strings["q_no_reply"])
+            return
+
+        reply_msg = await message.get_reply_message()
+        phrases = await self.get_messages()
+        if not phrases:
+            await utils.answer(message, self.strings["error_no_messages"])
+            return
+
+        async def send_reply():
+            try:
+                text = random.choice(phrases)
+                await message.client.send_message(
+                    message.chat_id,
+                    text,
+                    reply_to=reply_msg.id
+                )
+            except errors.FloodWaitError as e:
+                await asyncio.sleep(e.seconds)
+            except Exception:
+                pass
+
+        task = asyncio.create_task(send_reply())
+        self.q_tasks.append(task)
+
+        await message.delete()  # удаляем саму команду .q
+
+    @loader.command()
+    async def qq(self, message):
+        """Остановить все активные задачи от .q"""
+        for task in self.q_tasks:
+            if not task.done():
+                task.cancel()
+        self.q_tasks.clear()
+        await utils.answer(message, self.strings["qq_done"])
