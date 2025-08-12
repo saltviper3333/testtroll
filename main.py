@@ -9,7 +9,7 @@ from telethon import errors
 
 @loader.tds
 class AutoSpamOnlineMod(loader.Module):
-    """Автоспам из текстового файла (.txt) на GitHub с чередующейся задержкой"""
+    """Автоспам из GitHub .txt с рандомной задержкой"""
 
     strings = {
         "name": "AutoSpamOnline",
@@ -23,8 +23,8 @@ class AutoSpamOnlineMod(loader.Module):
 
     def __init__(self):
         self.spam_active = False
-        # 💡 Сюда вставь свой RAW-URL к messages.txt
-        self.url = "https://raw.githubusercontent.com/saltviper3333/gdfsfdsfdsf/main/messages.txt"
+        # 📝 Сюда вставь свой RAW-URL на messages.txt
+        self.url = "https://raw.githubusercontent.com/saltviper3333/testtroll/main/messages.txt"
 
     async def get_messages(self):
         """Скачать TXT-файл и вернуть список строк"""
@@ -42,7 +42,7 @@ class AutoSpamOnlineMod(loader.Module):
 
     @loader.command()
     async def sex(self, message):
-        """Начать онлайн-спам"""
+        """Запустить онлайн-спам"""
         if self.spam_active:
             await utils.answer(message, self.strings["already_running"])
             return
@@ -62,18 +62,13 @@ class AutoSpamOnlineMod(loader.Module):
         self.spam_active = True
         await utils.answer(message, self.strings["spam_started"])
 
-        delay_cycle = [0.10, 0.5]  # "качалка" задержек
-        delay_index = 0
-
         try:
             while self.spam_active:
                 text = random.choice(phrases)
                 try:
-                    # Отправка сообщения
                     await message.client.send_message(message.chat_id, text)
-                    # Чередуем задержки
-                    await asyncio.sleep(delay_cycle[delay_index])
-                    delay_index = (delay_index + 1) % len(delay_cycle)
+                    # Рандомная задержка 0.08–0.5 сек
+                    await asyncio.sleep(random.uniform(0.08, 0.5))
                 except errors.FloodWaitError as e:
                     await utils.answer(message, f"🚫 FloodWait {e.seconds} сек")
                     await asyncio.sleep(e.seconds)
