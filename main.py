@@ -43,7 +43,7 @@ class AutoSpamOnlineMod(loader.Module):
         except Exception as e:
             return str(e)
 
-    # === Запуск спама
+    # === Запуск спама ===
     @loader.command()
     async def sex(self, message):
         if self.spam_active:
@@ -70,7 +70,7 @@ class AutoSpamOnlineMod(loader.Module):
         else:
             await utils.answer(message, self.strings["not_running"])
 
-    # === Ставим таргет
+    # === Ставим "байт" ===
     @loader.command()
     async def q(self, message):
         if not message.is_reply:
@@ -79,17 +79,17 @@ class AutoSpamOnlineMod(loader.Module):
         target_id = reply_msg.sender_id
         chat_id = message.chat_id
         self.q_targets.setdefault(chat_id, {})[target_id] = time.time()
-        await message.delete()
+        await message.delete()  # мгновенно удаляем команду
         user_name = utils.get_display_name(reply_msg.sender)
         await utils.answer(reply_msg, self.strings["q_added"].format(user_name))
 
-    # === Сбрасываем
+    # === Сбрасываем все цели ===
     @loader.command()
     async def qq(self, message):
         self.q_targets.clear()
         await utils.answer(message, self.strings["qq_done"])
 
-    # === Красивое меню
+    # === Список активных байтов ===
     @loader.command()
     async def qwe(self, message):
         if not self.q_targets:
@@ -108,11 +108,18 @@ class AutoSpamOnlineMod(loader.Module):
             out += f"\n<b>{chat_title}</b>:\n"
             for uid, start_time in users.items():
                 try:
-                    user = await message.client.get_entity(uid)
-                    name = utils.get_display_name(user)
-                    uname = f"@{user.username}" if getattr(user, "username", None) else "—"
+                    # Получаем участника, чтобы точно достать имя/юзернейм
+                    participant = await message.client.get_entity(uid)
+                    uname = f"@{participant.username}" if getattr(participant, "username", None) else "—"
+                    name_parts = []
+                    if getattr(participant, "first_name", None):
+                        name_parts.append(participant.first_name)
+                    if getattr(participant, "last_name", None):
+                        name_parts.append(participant.last_name)
+                    name = " ".join(name_parts) if name_parts else str(uid)
                 except:
-                    name, uname = str(uid), "—"
+                    uname = "—"
+                    name = str(uid)
                 elapsed = int(now - start_time)
                 h = elapsed // 3600
                 m = (elapsed % 3600) // 60
@@ -121,7 +128,7 @@ class AutoSpamOnlineMod(loader.Module):
                 out += f"  └ ⏳ {h:02}:{m:02}:{s:02}\n"
         await utils.answer(message, out)
 
-    # === Автоответчик
+    # === Автоответчик по шаблону ===
     async def watcher(self, message):
         if not getattr(message, "sender_id", None):
             return
