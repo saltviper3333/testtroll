@@ -2,12 +2,12 @@ import asyncio
 import random
 import aiohttp
 from .. import loader, utils
-from telethon import events, errors
+from telethon import errors
 
 
 @loader.tds
 class AutoSpamOnlineMod(loader.Module):
-    """Автоспам с фразами из облачного TXT файла + автобайт по .q"""
+    """Автоспам + автобайт (.q / .qq / .qwe)"""
 
     strings = {
         "name": "AutoSpamOnline",
@@ -17,61 +17,51 @@ class AutoSpamOnlineMod(loader.Module):
         "error_no_messages": "❌ <b>В удалённом файле нет сообщений!</b>",
         "already_running": "⚠️ <b>ебля уже запущена</b>",
         "not_running": "❌ <b>ебля не активна</b>",
-        "q_no_reply": "⚠️ <b>Используй эту команду в ответ на сообщение!</b>",
-        "q_added": "✅ <b>Автобайт на {}</b>",
-        "qq_done": "🗑 <b>Все автобайты остановлены</b>",
+        "q_no_reply": "⚠️ <b>Используй эту команду ответом на сообщение!</b>",
+        "q_added": "✅ <b>Байт включён на {}</b>",
+        "qq_done": "🗑 <b>Все байты остановлены</b>",
+        "qwe_header": "📜 <b>Активные байты:</b>\n"
     }
 
     def __init__(self):
         self.spam_active = False
-        self.q_targets = {}  # chat_id: set(user_ids)
+        # {chat_id: set(user_ids)}
+        self.q_targets = {}
         self.url = "https://raw.githubusercontent.com/saltviper3333/gdfsfdsfdsf/main/messages.txt"
 
     async def get_messages(self):
-        """Скачивание TXT и превращение в список строк"""
+        """Загружаем TXT-шаблон"""
         try:
             async with aiohttp.ClientSession() as session:
                 async with session.get(self.url) as response:
                     if response.status == 200:
-                        text_data = await response.text()
-                        return [line.strip() for line in text_data.splitlines() if line.strip()]
+                        data = await response.text()
+                        return [line.strip() for line in data.splitlines() if line.strip()]
                     else:
                         return None
         except Exception as e:
             return str(e)
 
-    # === обычный спам ===
+    # 🔹 Главный спам-цикл
     @loader.command()
     async def sex(self, message):
         """Запустить еблю (онлайн-спам)"""
         if self.spam_active:
-            await utils.answer(message, self.strings["already_running"])
-            return
+            return await utils.answer(message, self.strings["already_running"])
 
         phrases = await self.get_messages()
-        if phrases is None:
-            await utils.answer(message, self.strings["error_download"].format("HTTP error"))
-            return
-        if isinstance(phrases, str):
-            await utils.answer(message, self.strings["error_download"].format(phrases))
-            return
-        if not phrases:
-            await utils.answer(message, self.strings["error_no_messages"])
-            return
+        if not phrases or isinstance(phrases, str):
+            return await utils.answer(message, self.strings["error_no_messages"])
 
         self.spam_active = True
         await utils.answer(message, self.strings["spam_started"])
 
         try:
             while self.spam_active:
-                text = random.choice(phrases)
-                try:
-                    await message.client.send_message(message.chat_id, text)
-                    await asyncio.sleep(random.uniform(0.08, 0.5))
-                except errors.FloodWaitError as e:
-                    await asyncio.sleep(e.seconds)
-                except Exception:
-                    break
+                await message.client.send_message(message.chat_id, random.choice(phrases))
+                await asyncio.sleep(random.uniform(0.08, 0.5))
+        except errors.FloodWaitError as e:
+            await asyncio.sleep(e.seconds)
         finally:
             self.spam_active = False
 
@@ -84,59 +74,68 @@ class AutoSpamOnlineMod(loader.Module):
         else:
             await utils.answer(message, self.strings["not_running"])
 
-    # === автобайт .q / .qq ===
+    # 🔹 Ставим авто-байтинг
     @loader.command()
     async def q(self, message):
-        """В ответ на сообщение — добавить юзера в список автоответа"""
+        """Ответом на сообщение — включить байтинг на пользователя"""
         if not message.is_reply:
-            await utils.answer(message, self.strings["q_no_reply"])
-            return
+            return await utils.answer(message, self.strings["q_no_reply"])
 
         reply_msg = await message.get_reply_message()
         target_id = reply_msg.sender_id
         chat_id = message.chat_id
 
-        if chat_id not in self.q_targets:
-            self.q_targets[chat_id] = set()
-        self.q_targets[chat_id].add(target_id)
+        self.q_targets.setdefault(chat_id, set()).add(target_id)
 
-        user_name = utils.get_display_name(reply_msg.sender)
-        await utils.answer(message, self.strings["q_added"].format(user_name))
-        await asyncio.sleep(2)
+        # Мгновенно удаляем команду
         await message.delete()
 
+        user_name = utils.get_display_name(reply_msg.sender)
+        # Сообщение о добавлении можно опустить, но вставлю для логов в консоль
+        await utils.answer(reply_msg, self.strings["q_added"].format(user_name))
+
+    # 🔹 Очищаем все цели
     @loader.command()
     async def qq(self, message):
-        """Остановить все автобайты"""
+        """Сбросить все байты"""
         self.q_targets.clear()
         await utils.answer(message, self.strings["qq_done"])
 
-    @loader.loop(interval=0.5, autostart=True)
-    async def _check_q_targets(self):
-        """Слушаем чат и отвечаем по шаблону на сообщения от выбранных пользователей"""
+    # 🔹 Выводим список
+    @loader.command()
+    async def qwe(self, message):
+        """Вывести список активных байтингов"""
         if not self.q_targets:
-            return  # никого не байтим
+            return await utils.answer(message, "❌ <b>Нет активных байтов</b>")
 
-        phrases = await self.get_messages()
-        if not phrases or isinstance(phrases, str):
-            return
+        out = self.strings["qwe_header"]
+        for chat_id, users in self.q_targets.items():
+            try:
+                chat_title = (await message.client.get_entity(chat_id)).title
+            except:
+                chat_title = str(chat_id)
+            out += f"\n<b>{chat_title}</b>:\n"
+            for uid in users:
+                try:
+                    name = utils.get_display_name(await message.client.get_entity(uid))
+                except:
+                    name = str(uid)
+                out += f"  ╰ 💬 {name}\n"
+        await utils.answer(message, out)
 
-        async for event in self.client.iter_messages(None, limit=1):
-            pass  # нужен для инициализации соединения в loop
-
-    @loader.handler()
+    # 🔹 Слежка за сообщениями
     async def watcher(self, message):
+        if not getattr(message, "sender_id", None):
+            return
         chat_id = message.chat_id
-        from_id = getattr(message.sender, 'id', None)
+        user_id = message.sender_id
 
-        if chat_id in self.q_targets and from_id in self.q_targets[chat_id]:
-            # выбираем случайную фразу из шаблона
+        if chat_id in self.q_targets and user_id in self.q_targets[chat_id]:
             phrases = await self.get_messages()
             if not phrases or isinstance(phrases, str):
                 return
-            text = random.choice(phrases)
             try:
-                await message.reply(text)
+                await message.reply(random.choice(phrases))
             except errors.FloodWaitError as e:
                 await asyncio.sleep(e.seconds)
-                await message.reply(text)
+                await message.reply(random.choice(phrases))
