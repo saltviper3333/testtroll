@@ -7,11 +7,11 @@ from telethon import errors
 
 
 @loader.tds
-class AutoSpamOnlineMod(loader.Module):
+class sex(loader.Module):
     """Автоспам + автобайт (.q / .qq / .qwe)"""
 
     strings = {
-        "name": "AutoSpamOnline",
+        "name": "sex",
         "spam_started": "🚀 <b>ебля запущена!</b>",
         "spam_stopped": "⛔ <b>ебля остановлена</b>",
         "error_download": "❌ <b>Ошибка загрузки фраз:</b> <code>{}</code>",
