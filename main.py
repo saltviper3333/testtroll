@@ -13,8 +13,8 @@ class AutoSpamOnlineMod(loader.Module):
 
     strings = {
         "name": "AutoSpamOnline",
-        "spam_started": "🚀 <b>Онлайн-спам запущен!</b>",
-        "spam_stopped": "⛔ <b>Спам остановлен</b>",
+        "spam_started": "🚀 <b>ебля запущена!</b>",
+        "spam_stopped": "⛔ <b>ебля остановлена</b>",
         "error_download": "❌ <b>Ошибка загрузки фраз:</b> <code>{}</code>",
         "error_no_messages": "❌ <b>В удалённом файле нет сообщений!</b>",
         "already_running": "⚠️ <b>Спам уже запущен</b>",
